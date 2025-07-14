@@ -1,0 +1,143 @@
+# Deploy Configuration
+# This file should be placed in each Laravel project root directory
+
+# Project Information
+project:
+  name: "My Laravel App"
+  description: "Description of your Laravel application"
+  
+# Server Configuration
+server:
+  host: "your-server.example.com"
+  user: "deploy"
+  port: 22
+  ssh_key: "~/.ssh/id_rsa"  # Path to SSH private key
+  
+# Domain Configuration
+domain:
+  primary: "myapp.com"
+  aliases: 
+    - "www.myapp.com"
+  ssl:
+    email: "admin@myapp.com"
+    force_https: true
+
+# Git Configuration
+git:
+  repository: "git@github.com:user/my-laravel-app.git"
+  branch: "main"
+  deploy_key: "~/.ssh/deploy_key"  # Optional: separate deploy key
+
+# Database Configuration
+database:
+  name: "myapp_prod"
+  user: "myapp_user"
+  password: "secure_random_password_here"
+  root_password: "secure_root_password"
+  backup_retention_days: 7
+
+# Redis Configuration
+redis:
+  password: "secure_redis_password"
+  max_memory: "256mb"
+
+# Build Configuration
+build:
+  node_version: "18"
+  php_version: "8.4"
+  composer:
+    install: true
+    flags: "--no-dev --optimize-autoloader"
+  npm:
+    install: true
+    build_command: "npm run build"
+    
+# Application Configuration
+app:
+  environment: "production"
+  debug: false
+  timezone: "UTC"
+  key: "base64:GENERATE_NEW_KEY_HERE"
+  
+# Deployment Configuration
+deployment:
+  strategy: "blue-green"  # blue-green, rolling, recreate
+  health_check:
+    enabled: true
+    url: "/health"
+    timeout: 30
+    retries: 10
+  backup:
+    enabled: true
+    before_deploy: true
+  migrations:
+    run: true
+    timeout: 300
+  cache:
+    clear_before: true
+    warm_after: true
+    
+# Docker Configuration
+docker:
+  registry: ""  # Optional: private registry
+  image_tag_strategy: "timestamp"  # timestamp, git-hash, semantic
+  resources:
+    memory: "1g"
+    cpu: "1"
+    
+# Queue Configuration
+queue:
+  workers: 2
+  connection: "redis"
+  timeout: 3600
+  
+# Mail Configuration (optional)
+mail:
+  driver: "smtp"
+  host: "smtp.mailgun.org"
+  port: 587
+  username: ""
+  password: ""
+  encryption: "tls"
+  from:
+    address: "noreply@myapp.com"
+    name: "My App"
+    
+# Monitoring Configuration
+monitoring:
+  enabled: true
+  webhook_url: ""  # Slack/Discord webhook for notifications
+  health_check_interval: 300
+  
+# Environment Variables
+env:
+  # Custom environment variables
+  APP_ENV: "production"
+  APP_DEBUG: "false"
+  LOG_CHANNEL: "daily"
+  LOG_LEVEL: "error"
+  
+# Storage Configuration
+storage:
+  disk: "local"
+  # s3:
+  #   bucket: ""
+  #   region: ""
+  #   key: ""
+  #   secret: ""
+  
+# Security Configuration
+security:
+  csrf_protection: true
+  session_secure: true
+  session_same_site: "strict"
+  
+# Performance Configuration
+performance:
+  opcache:
+    enabled: true
+    memory_consumption: 256
+    max_accelerated_files: 10000
+  redis_cache:
+    prefix: "myapp_cache"
+    default_ttl: 3600

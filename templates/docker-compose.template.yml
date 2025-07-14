@@ -1,0 +1,153 @@
+# Docker Compose template for production deployments
+# This file is used by the deployment script to generate project-specific configurations
+
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: {{PROJECT_NAME}}-app
+    restart: unless-stopped
+    volumes:
+      - ./storage:/var/www/html/storage
+      - ./bootstrap/cache:/var/www/html/bootstrap/cache
+    ports:
+      - "{{PORT}}:80"
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY={{APP_KEY}}
+      - APP_URL=https://{{DOMAIN}}
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE={{DB_NAME}}
+      - DB_USERNAME={{DB_USER}}
+      - DB_PASSWORD={{DB_PASSWORD}}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD={{REDIS_PASSWORD}}
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+      - MAIL_MAILER={{MAIL_MAILER}}
+      - MAIL_HOST={{MAIL_HOST}}
+      - MAIL_PORT={{MAIL_PORT}}
+      - MAIL_USERNAME={{MAIL_USERNAME}}
+      - MAIL_PASSWORD={{MAIL_PASSWORD}}
+      - MAIL_ENCRYPTION={{MAIL_ENCRYPTION}}
+      - MAIL_FROM_ADDRESS={{MAIL_FROM_ADDRESS}}
+      - MAIL_FROM_NAME={{MAIL_FROM_NAME}}
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  mysql:
+    image: mysql:8.0
+    container_name: {{PROJECT_NAME}}-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: {{DB_ROOT_PASSWORD}}
+      MYSQL_DATABASE: {{DB_NAME}}
+      MYSQL_USER: {{DB_USER}}
+      MYSQL_PASSWORD: {{DB_PASSWORD}}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    ports:
+      - "{{MYSQL_PORT}}:3306"
+    networks:
+      - app-network
+    command: --default-authentication-plugin=mysql_native_password
+
+  redis:
+    image: redis:7-alpine
+    container_name: {{PROJECT_NAME}}-redis
+    restart: unless-stopped
+    command: redis-server --requirepass {{REDIS_PASSWORD}} --appendonly yes --maxmemory {{REDIS_MAX_MEMORY}} --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "{{REDIS_PORT}}:6379"
+    networks:
+      - app-network
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: {{PROJECT_NAME}}-scheduler
+    restart: unless-stopped
+    volumes:
+      - ./storage:/var/www/html/storage
+      - ./bootstrap/cache:/var/www/html/bootstrap/cache
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY={{APP_KEY}}
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE={{DB_NAME}}
+      - DB_USERNAME={{DB_USER}}
+      - DB_PASSWORD={{DB_PASSWORD}}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD={{REDIS_PASSWORD}}
+    command: php artisan schedule:work
+    networks:
+      - app-network
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: {{PROJECT_NAME}}-queue
+    restart: unless-stopped
+    volumes:
+      - ./storage:/var/www/html/storage
+      - ./bootstrap/cache:/var/www/html/bootstrap/cache
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY={{APP_KEY}}
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE={{DB_NAME}}
+      - DB_USERNAME={{DB_USER}}
+      - DB_PASSWORD={{DB_PASSWORD}}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD={{REDIS_PASSWORD}}
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    networks:
+      - app-network
+    deploy:
+      replicas: {{QUEUE_WORKERS}}
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
