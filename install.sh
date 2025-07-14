@@ -59,7 +59,7 @@ check_dependencies() {
     local missing_deps=()
     
     command -v curl >/dev/null 2>&1 || missing_deps+=("curl")
-    command -v sed >/dev/null 2>&1 || missing_deps+=("sed")
+    command -v awk >/dev/null 2>&1 || missing_deps+=("awk")
     command -v openssl >/dev/null 2>&1 || missing_deps+=("openssl")
     
     if [ ${#missing_deps[@]} -ne 0 ]; then
@@ -262,18 +262,24 @@ configure_deploy_yml() {
     local db_root_password=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
     local redis_password=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
     
-    # Update deploy.yml with user input
-    sed -i.bak \
-        -e "s/name: \"My Laravel App\"/name: \"$project_name\"/" \
-        -e "s/host: \"your-server.example.com\"/host: \"$server_host\"/" \
-        -e "s/primary: \"myapp.com\"/primary: \"$domain\"/" \
-        -e "s/email: \"admin@myapp.com\"/email: \"$ssl_email\"/" \
-        -e "s/name: \"myapp_prod\"/name: \"$db_name\"/" \
-        -e "s/user: \"myapp_user\"/user: \"$db_user\"/" \
-        -e "s/password: \"secure_random_password_here\"/password: \"$db_password\"/" \
-        -e "s/root_password: \"secure_root_password\"/root_password: \"$db_root_password\"/" \
-        -e "s/password: \"secure_redis_password\"/password: \"$redis_password\"/" \
-        "$deploy_yml"
+    # Update deploy.yml with user input using safe replacements
+    cp "$deploy_yml" "$deploy_yml.bak"
+    
+    # Replace each line individually to avoid regex issues
+    awk -v project="$project_name" -v host="$server_host" -v domain="$domain" \
+        -v email="$ssl_email" -v db_name="$db_name" -v db_user="$db_user" \
+        -v db_pass="$db_password" -v root_pass="$db_root_password" -v redis_pass="$redis_password" '
+        /name: "My Laravel App"/ { gsub(/My Laravel App/, project) }
+        /host: "your-server.example.com"/ { gsub(/your-server.example.com/, host) }
+        /primary: "myapp.com"/ { gsub(/myapp.com/, domain) }
+        /email: "admin@myapp.com"/ { gsub(/admin@myapp.com/, email) }
+        /name: "myapp_prod"/ { gsub(/myapp_prod/, db_name) }
+        /user: "myapp_user"/ { gsub(/myapp_user/, db_user) }
+        /password: "secure_random_password_here"/ { gsub(/secure_random_password_here/, db_pass) }
+        /root_password: "secure_root_password"/ { gsub(/secure_root_password/, root_pass) }
+        /password: "secure_redis_password"/ { gsub(/secure_redis_password/, redis_pass) }
+        { print }
+    ' "$deploy_yml.bak" > "$deploy_yml"
     
     # Remove backup file
     rm -f "$deploy_yml.bak"

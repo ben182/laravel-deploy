@@ -9,7 +9,8 @@
       "Bash(docker exec:*)",
       "Bash(curl:*)",
       "Bash(docker logs:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
