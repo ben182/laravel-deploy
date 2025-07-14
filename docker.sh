@@ -75,6 +75,8 @@ show_usage() {
     echo "  status        Show container status"
     echo "  clean         Clean up unused Docker resources"
     echo "  reset         Reset everything (rebuild containers)"
+    echo "  horizon       Start Laravel Horizon (production only)"
+    echo "  horizon-stop  Stop Laravel Horizon"
     echo ""
     echo "Options:"
     echo "  -f, --follow  Follow log output"
@@ -277,6 +279,20 @@ reset_everything() {
     fi
 }
 
+start_horizon() {
+    log_info "Starting Laravel Horizon..."
+    docker-compose -f $COMPOSE_PROD_FILE --profile horizon up -d horizon
+    log_success "Laravel Horizon started successfully"
+    show_status
+}
+
+stop_horizon() {
+    log_info "Stopping Laravel Horizon..."
+    docker-compose -f $COMPOSE_PROD_FILE stop horizon
+    docker-compose -f $COMPOSE_PROD_FILE rm -f horizon
+    log_success "Laravel Horizon stopped successfully"
+}
+
 # Main script logic
 main() {
     check_docker
@@ -353,6 +369,12 @@ main() {
             ;;
         "reset")
             reset_everything
+            ;;
+        "horizon")
+            start_horizon
+            ;;
+        "horizon-stop")
+            stop_horizon
             ;;
         "-h"|"--help"|"help"|"")
             show_usage

@@ -4,7 +4,11 @@
       "Bash(mkdir:*)",
       "Bash(chmod:*)",
       "WebFetch(domain:serversideup.net)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(docker-compose:*)",
+      "Bash(docker exec:*)",
+      "Bash(curl:*)",
+      "Bash(docker logs:*)"
     ],
     "deny": []
   }

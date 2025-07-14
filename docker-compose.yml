@@ -9,7 +9,7 @@ services:
       - ./:/var/www/html
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
     ports:
-      - "8000:80"
+      - "8000:8080"
     depends_on:
       - mysql
       - redis
@@ -69,7 +69,14 @@ services:
       - DB_PASSWORD=secret
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-    command: php artisan schedule:work
+    command: ["php", "/var/www/html/artisan", "schedule:work"]
+    stop_signal: SIGTERM
+    healthcheck:
+      test: ["CMD", "healthcheck-schedule"]
+      start_period: 10s
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - laravel
 
@@ -91,7 +98,14 @@ services:
       - DB_PASSWORD=secret
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    command: ["php", "/var/www/html/artisan", "queue:work", "--tries=3"]
+    stop_signal: SIGTERM
+    healthcheck:
+      test: ["CMD", "healthcheck-queue"]
+      start_period: 10s
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - laravel
 

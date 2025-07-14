@@ -122,6 +122,8 @@ Vollständiges Docker-Management:
 ./docker.sh test           # Tests ausführen
 ./docker.sh backup         # Datenbank-Backup
 ./docker.sh clean          # Docker-Cleanup
+./docker.sh horizon        # Laravel Horizon starten (Produktion)
+./docker.sh horizon-stop   # Laravel Horizon stoppen
 ```
 
 #### ./provision.sh
@@ -436,6 +438,10 @@ Unser System nutzt die hochoptimierten `serversideup/php:8.4-fpm-nginx` Docker I
 - **Horizon Integration** - Native Unterstützung für Laravel Horizon
 - **Scheduler Support** - Eingebaute Unterstützung für Laravel Task Scheduler
 - **Queue Processing** - Optimierte Queue-Worker-Konfiguration
+- **Configuration Caching** - Automatisches Caching von Konfigurationsdateien
+- **Route Caching** - Optimierte Route-Registrierung
+- **View Caching** - Vorkompilierte Views für bessere Performance
+- **Event Caching** - Optimierte Event-Listener-Registrierung
 
 ### Performance-Vorteile
 - **High Performance Defaults** - Optimiert für hohe Anfragezahlen
@@ -448,6 +454,46 @@ Unser System nutzt die hochoptimierten `serversideup/php:8.4-fpm-nginx` Docker I
 - **FPM** - Für separate Webserver-Konfigurationen
 - **FPM-NGINX** - All-in-One-Lösung (empfohlen für Laravel)
 - **Alpine & Debian** - Verschiedene Base-Images je nach Anforderung
+
+### Laravel-spezifische Konfiguration
+
+#### Task Scheduler
+Der Laravel Task Scheduler läuft als separater Container:
+```yaml
+scheduler:
+  command: ["php", "/var/www/html/artisan", "schedule:work"]
+  stop_signal: SIGTERM
+  healthcheck:
+    test: ["CMD", "healthcheck-schedule"]
+```
+
+#### Queue Worker
+Queue-Worker mit nativen Health-Checks:
+```yaml
+queue:
+  command: ["php", "/var/www/html/artisan", "queue:work", "--tries=3"]
+  stop_signal: SIGTERM
+  healthcheck:
+    test: ["CMD", "healthcheck-queue"]
+```
+
+#### Laravel Horizon (Optional)
+Für erweiterte Queue-Verwaltung:
+```bash
+# Horizon starten (nur in Produktion)
+./docker.sh horizon
+
+# Horizon stoppen
+./docker.sh horizon-stop
+```
+
+#### Automatisierungen (Produktion)
+In der Produktion sind folgende Automatisierungen aktiviert:
+- **AUTORUN_ENABLED=true** - Aktiviert Laravel-Automatisierungen
+- **PHP_OPCACHE_ENABLE=1** - Aktiviert OPcache für bessere Performance
+- Automatische Migrationen
+- Storage-Linking
+- Configuration/Route/View/Event-Caching
 
 ## Best Practices
 
