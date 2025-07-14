@@ -64,12 +64,29 @@ cp deploy.yml /path/to/your/laravel/project/
 # Server-Details, Domain, SSH-Keys, Datenbank-Credentials konfigurieren
 ```
 
+**Die Installation erstellt automatisch:**
+- ✅ `deploy.yml` - Konfiguriert mit Ihren Projekt-Details
+- ✅ `.env` - Intelligente Aktualisierung nur Docker-relevanter Variablen
+- ✅ Docker-Konfigurationsdateien
+- ✅ Management-Skripte
+
+**Intelligente .env-Aktualisierung:**
+- Bestehende .env wird automatisch gesichert
+- Nur Docker-relevante Variablen werden aktualisiert
+- Ihre bestehenden Einstellungen bleiben erhalten
+- Fehlende APP_KEY wird automatisch generiert
+
 ### 4. Development
 
 ```bash
 # In Ihrem Laravel-Projekt
 ./docker.sh build
 ./docker.sh up
+
+# Die .env-Datei ist bereits konfiguriert für:
+# - MySQL-Datenbank (Host: mysql, Port: 3306)
+# - Redis-Cache (Host: redis, Port: 6379)
+# - APP_URL: http://localhost:8000
 ```
 
 ### 5. Deployment

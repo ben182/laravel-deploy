@@ -38,6 +38,106 @@ show_usage() {
     echo "Run this script from your Laravel project root directory."
 }
 
+update_env_file() {
+    local project_name="$1"
+    local domain="$2"
+    local db_name="$3"
+    local db_user="$4"
+    local db_password="$5"
+    
+    local env_file="./.env"
+    
+    log_info "Updating .env file with Docker configuration..."
+    
+    # Create backup of existing .env if it exists
+    if [ -f "$env_file" ]; then
+        cp "$env_file" "$env_file.backup-$(date +%Y%m%d_%H%M%S)"
+        log_info "Existing .env backed up"
+    fi
+    
+    # If no .env exists, create a basic one
+    if [ ! -f "$env_file" ]; then
+        log_info "Creating new .env file..."
+        cat > "$env_file" << 'EOF'
+APP_NAME=Laravel
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_TIMEZONE=UTC
+APP_URL=http://localhost:8000
+
+LOG_CHANNEL=stack
+LOG_LEVEL=debug
+
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=laravel
+DB_USERNAME=laravel
+DB_PASSWORD=secret
+
+REDIS_HOST=redis
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+
+CACHE_STORE=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=redis
+
+MAIL_MAILER=log
+EOF
+    fi
+    
+    # Update or add specific Docker-related variables
+    update_env_variable "$env_file" "APP_NAME" "$project_name"
+    update_env_variable "$env_file" "APP_URL" "http://localhost:8000"
+    update_env_variable "$env_file" "DB_CONNECTION" "mysql"
+    update_env_variable "$env_file" "DB_HOST" "mysql"
+    update_env_variable "$env_file" "DB_PORT" "3306"
+    update_env_variable "$env_file" "DB_DATABASE" "$db_name"
+    update_env_variable "$env_file" "DB_USERNAME" "$db_user"
+    update_env_variable "$env_file" "DB_PASSWORD" "$db_password"
+    update_env_variable "$env_file" "REDIS_HOST" "redis"
+    update_env_variable "$env_file" "REDIS_PASSWORD" "null"
+    update_env_variable "$env_file" "REDIS_PORT" "6379"
+    update_env_variable "$env_file" "CACHE_STORE" "redis"
+    update_env_variable "$env_file" "SESSION_DRIVER" "redis"
+    update_env_variable "$env_file" "QUEUE_CONNECTION" "redis"
+    
+    # Generate APP_KEY if not exists or empty
+    if ! grep -q "APP_KEY=" "$env_file" || grep -q "APP_KEY=$" "$env_file" || grep -q "APP_KEY=\"\"" "$env_file"; then
+        local app_key="base64:$(openssl rand -base64 32)"
+        update_env_variable "$env_file" "APP_KEY" "$app_key"
+        log_info "Generated new APP_KEY"
+    fi
+    
+    # Add Docker-specific variables if not present
+    if ! grep -q "DOCKER_APP_PORT" "$env_file"; then
+        echo "" >> "$env_file"
+        echo "# Docker Configuration" >> "$env_file"
+        echo "DOCKER_APP_PORT=8000" >> "$env_file"
+        echo "DOCKER_DB_PORT=3306" >> "$env_file"
+        echo "DOCKER_REDIS_PORT=6379" >> "$env_file"
+    fi
+    
+    log_success ".env file updated with Docker configuration"
+}
+
+update_env_variable() {
+    local env_file="$1"
+    local var_name="$2"
+    local var_value="$3"
+    
+    if grep -q "^${var_name}=" "$env_file"; then
+        # Variable exists, update it
+        sed -i.tmp "s/^${var_name}=.*/${var_name}=${var_value}/" "$env_file"
+        rm -f "$env_file.tmp"
+    else
+        # Variable doesn't exist, add it
+        echo "${var_name}=${var_value}" >> "$env_file"
+    fi
+}
+
 configure_deploy_yml() {
     local deploy_yml="./deploy.yml"
     
@@ -109,6 +209,9 @@ configure_deploy_yml() {
     
     log_success "deploy.yml configured successfully"
     log_info "Backup created: $deploy_yml.backup"
+    
+    # Update .env file with Docker configuration
+    update_env_file "$project_name" "$domain" "$db_name" "$db_user" "$db_password"
     
     echo ""
     echo "Configuration summary:"
