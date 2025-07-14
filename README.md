@@ -37,6 +37,12 @@ chmod +x install.sh
 ./install.sh
 ```
 
+**System-Update**
+```bash
+# Deployment-System auf die neueste Version aktualisieren
+curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh | bash
+```
+
 **Manuelle Installation**
 ```bash
 # Diese Dateien in Ihr Laravel-Projekt kopieren
@@ -286,6 +292,47 @@ Das System konfiguriert automatisch:
 - Backup-Wiederherstellung
 - Container-Recovery
 - Konfiguration-Backups
+
+## System-Updates
+
+### Automatisches Update
+
+Das Deployment-System kann jederzeit auf die neueste Version aktualisiert werden:
+
+```bash
+# Im Laravel-Projekt-Verzeichnis
+curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh | bash
+```
+
+**Update-Optionen:**
+```bash
+# Update ohne Backup
+curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh | bash -s -- --skip-backup
+
+# Update ohne Bestätigung
+curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh | bash -s -- --force
+```
+
+**Was wird aktualisiert:**
+- Dockerfile
+- docker-compose.yml / docker-compose.prod.yml
+- docker.sh, deploy.sh, provision.sh
+- configure.sh
+- docker/ Verzeichnis-Konfigurationen
+
+**Was wird NICHT aktualisiert:**
+- deploy.yml (Ihre Projekt-Konfiguration)
+- .env Dateien
+- Laravel-Anwendungsdateien
+
+### Manuelle Updates
+
+```bash
+# Update-Skript herunterladen und ausführen
+wget https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh
+chmod +x update.sh
+./update.sh --help
+```
 
 ## Erweiterte Nutzung
 

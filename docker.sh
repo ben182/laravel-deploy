@@ -94,6 +94,16 @@ docker_up() {
     docker-compose -f $COMPOSE_FILE up -d
     log_success "Containers started successfully"
     show_status
+    
+    # Show browser access information
+    echo ""
+    log_info "🌐 Your application is now running at:"
+    echo -e "${GREEN}   → http://localhost:8000${NC}"
+    echo ""
+    echo "Other services:"
+    echo -e "${BLUE}   → MySQL:${NC} localhost:3306"
+    echo -e "${BLUE}   → Redis:${NC} localhost:6379"
+    echo ""
 }
 
 docker_prod() {
