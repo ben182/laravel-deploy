@@ -360,10 +360,7 @@ EOF
     # Update or add specific Docker-related variables in organized sections
     organize_env_file "$env_file" "$db_name" "$db_user" "$db_password"
     
-    # Update APP_URL if it exists
-    if grep -q "^APP_URL=" "$env_file"; then
-        update_env_variable "$env_file" "APP_URL" "http://localhost:8000"
-    fi
+    # Update APP_URL if it exists (will be handled by organize_env_file)
     
     # Generate APP_KEY if not exists or empty
     if ! grep -q "APP_KEY=" "$env_file" || grep -q "APP_KEY=$" "$env_file" || grep -q "APP_KEY=\"\"" "$env_file"; then
@@ -390,19 +387,95 @@ organize_env_file() {
     local db_user="$3"
     local db_password="$4"
     
-    # Simple approach: just update the variables in place
-    update_env_variable "$env_file" "DB_CONNECTION" "mysql"
-    update_env_variable "$env_file" "DB_HOST" "mysql"
-    update_env_variable "$env_file" "DB_PORT" "3306"
-    update_env_variable "$env_file" "DB_DATABASE" "$db_name"
-    update_env_variable "$env_file" "DB_USERNAME" "$db_user"
-    update_env_variable "$env_file" "DB_PASSWORD" "$db_password"
-    update_env_variable "$env_file" "REDIS_HOST" "redis"
-    update_env_variable "$env_file" "REDIS_PASSWORD" "null"
-    update_env_variable "$env_file" "REDIS_PORT" "6379"
-    update_env_variable "$env_file" "CACHE_STORE" "redis"
-    update_env_variable "$env_file" "SESSION_DRIVER" "redis"
-    update_env_variable "$env_file" "QUEUE_CONNECTION" "redis"
+    # Update variables in place using a more precise approach
+    update_env_variable_in_place "$env_file" "APP_URL" "http://localhost:8000"
+    update_env_variable_in_place "$env_file" "DB_CONNECTION" "mysql"
+    update_env_variable_in_place "$env_file" "DB_HOST" "mysql"
+    update_env_variable_in_place "$env_file" "DB_PORT" "3306"
+    update_env_variable_in_place "$env_file" "DB_DATABASE" "$db_name"
+    update_env_variable_in_place "$env_file" "DB_USERNAME" "$db_user"
+    update_env_variable_in_place "$env_file" "DB_PASSWORD" "$db_password"
+    update_env_variable_in_place "$env_file" "REDIS_HOST" "redis"
+    update_env_variable_in_place "$env_file" "REDIS_PASSWORD" "null"
+    update_env_variable_in_place "$env_file" "REDIS_PORT" "6379"
+    update_env_variable_in_place "$env_file" "CACHE_STORE" "redis"
+    update_env_variable_in_place "$env_file" "SESSION_DRIVER" "redis"
+    update_env_variable_in_place "$env_file" "QUEUE_CONNECTION" "redis"
+    
+    # Add missing variables in appropriate sections
+    add_missing_env_variables "$env_file"
+}
+
+update_env_variable_in_place() {
+    local env_file="$1"
+    local var_name="$2"
+    local var_value="$3"
+    
+    if grep -q "^${var_name}=" "$env_file"; then
+        # Variable exists, update it in place
+        awk -v var="$var_name" -v val="$var_value" '
+            $0 ~ "^" var "=" { print var "=" val; next }
+            { print }
+        ' "$env_file" > "$env_file.tmp"
+        mv "$env_file.tmp" "$env_file"
+    fi
+}
+
+add_missing_env_variables() {
+    local env_file="$1"
+    
+    # Add APP_URL after APP_DEBUG if it doesn't exist
+    if ! grep -q "^APP_URL=" "$env_file"; then
+        if grep -q "^APP_DEBUG=" "$env_file"; then
+            awk '/^APP_DEBUG=/ { print; print "APP_URL=http://localhost:8000"; next } { print }' "$env_file" > "$env_file.tmp"
+            mv "$env_file.tmp" "$env_file"
+        else
+            echo "APP_URL=http://localhost:8000" >> "$env_file"
+        fi
+    fi
+    
+    # Add DB variables if they don't exist
+    local db_section_exists=false
+    if grep -q "^DB_CONNECTION=" "$env_file"; then
+        db_section_exists=true
+    fi
+    
+    if [ "$db_section_exists" = false ]; then
+        # Add database section
+        echo "" >> "$env_file"
+        echo "# Database Configuration" >> "$env_file"
+        echo "DB_CONNECTION=mysql" >> "$env_file"
+        echo "DB_HOST=mysql" >> "$env_file"
+        echo "DB_PORT=3306" >> "$env_file"
+        echo "DB_DATABASE=laravel" >> "$env_file"
+        echo "DB_USERNAME=laravel" >> "$env_file"
+        echo "DB_PASSWORD=secret" >> "$env_file"
+    fi
+    
+    # Add Redis variables if they don't exist
+    if ! grep -q "^REDIS_HOST=" "$env_file"; then
+        # Find a good place to add Redis config
+        if grep -q "^REDIS_CLIENT=" "$env_file"; then
+            # Add after REDIS_CLIENT
+            awk '/^REDIS_CLIENT=/ { print; print "REDIS_HOST=redis"; print "REDIS_PASSWORD=null"; print "REDIS_PORT=6379"; next } { print }' "$env_file" > "$env_file.tmp"
+            mv "$env_file.tmp" "$env_file"
+        else
+            echo "" >> "$env_file"
+            echo "# Redis Configuration" >> "$env_file"
+            echo "REDIS_HOST=redis" >> "$env_file"
+            echo "REDIS_PASSWORD=null" >> "$env_file"
+            echo "REDIS_PORT=6379" >> "$env_file"
+        fi
+    fi
+    
+    # Add Docker configuration at the end if not present
+    if ! grep -q "DOCKER_APP_PORT" "$env_file"; then
+        echo "" >> "$env_file"
+        echo "# Docker Configuration" >> "$env_file"
+        echo "DOCKER_APP_PORT=8000" >> "$env_file"
+        echo "DOCKER_DB_PORT=3306" >> "$env_file"
+        echo "DOCKER_REDIS_PORT=6379" >> "$env_file"
+    fi
 }
 
 update_env_variable() {
