@@ -391,8 +391,8 @@ update_env_variable() {
     local var_value="$3"
     
     if grep -q "^${var_name}=" "$env_file"; then
-        # Variable exists, update it
-        sed -i.tmp "s/^${var_name}=.*/${var_name}=${var_value}/" "$env_file"
+        # Variable exists, update it (use | as delimiter to avoid issues with / in URLs)
+        sed -i.tmp "s|^${var_name}=.*|${var_name}=${var_value}|" "$env_file"
         rm -f "$env_file.tmp"
     else
         # Variable doesn't exist, add it
