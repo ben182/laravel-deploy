@@ -169,7 +169,7 @@ download_files() {
         "docker-compose.prod.yml"
         "docker.sh"
         "deploy.sh"
-        "deploy.yml"
+        "deploy-config.yml"
         "configure.sh"
     )
     
@@ -206,6 +206,7 @@ download_files() {
 
 configure_deploy_yml() {
     local target_dir="$1"
+    local deploy_config="$target_dir/deploy-config.yml"
     local deploy_yml="$target_dir/deploy.yml"
     
     log_info "Configuring deploy.yml..."
@@ -223,8 +224,8 @@ configure_deploy_yml() {
         local domain="$domain_suggestion"
         local server_host="your-server.com"
         local ssl_email="admin@$domain"
-        local db_name="${project_name}_prod"
-        local db_user="${project_name}_user"
+        local db_name="laravel"
+        local db_user="laravel"
     else
         # Interactive configuration
         echo ""
@@ -247,11 +248,9 @@ configure_deploy_yml() {
             read -p "SSL email is required: " ssl_email < /dev/tty
         done
         
-        read -p "Database name [${project_name}_prod]: " db_name < /dev/tty
-        db_name=${db_name:-${project_name}_prod}
-        
-        read -p "Database user [${project_name}_user]: " db_user < /dev/tty
-        db_user=${db_user:-${project_name}_user}
+        # Database uses defaults (laravel/laravel) - no user input needed
+        db_name="laravel"
+        db_user="laravel"
     fi
     
     echo ""
@@ -262,27 +261,28 @@ configure_deploy_yml() {
     local db_root_password=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
     local redis_password=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
     
+    # Copy deploy-config.yml to deploy.yml and configure it
+    cp "$deploy_config" "$deploy_yml"
+    
     # Update deploy.yml with user input using safe replacements
     cp "$deploy_yml" "$deploy_yml.bak"
     
     # Replace each line individually to avoid regex issues
     awk -v project="$project_name" -v host="$server_host" -v domain="$domain" \
-        -v email="$ssl_email" -v db_name="$db_name" -v db_user="$db_user" \
-        -v db_pass="$db_password" -v root_pass="$db_root_password" -v redis_pass="$redis_password" '
+        -v email="$ssl_email" -v db_pass="$db_password" -v root_pass="$db_root_password" -v redis_pass="$redis_password" '
         /name: "My Laravel App"/ { gsub(/My Laravel App/, project) }
         /host: "your-server.example.com"/ { gsub(/your-server.example.com/, host) }
         /primary: "myapp.com"/ { gsub(/myapp.com/, domain) }
         /email: "admin@myapp.com"/ { gsub(/admin@myapp.com/, email) }
-        /name: "myapp_prod"/ { gsub(/myapp_prod/, db_name) }
-        /user: "myapp_user"/ { gsub(/myapp_user/, db_user) }
         /password: "secure_random_password_here"/ { gsub(/secure_random_password_here/, db_pass) }
         /root_password: "secure_root_password"/ { gsub(/secure_root_password/, root_pass) }
         /password: "secure_redis_password"/ { gsub(/secure_redis_password/, redis_pass) }
         { print }
     ' "$deploy_yml.bak" > "$deploy_yml"
     
-    # Remove backup file
+    # Remove backup file and template
     rm -f "$deploy_yml.bak"
+    rm -f "$deploy_config"
     
     log_success "deploy.yml configured successfully"
 }
@@ -563,8 +563,8 @@ main() {
         # Use the same variables from deploy.yml configuration
         local project_name=$(basename "$target_dir")
         local domain_suggestion="${project_name}.com"
-        local db_name="${project_name}_prod"
-        local db_user="${project_name}_user"
+        local db_name="laravel"
+        local db_user="laravel"
         local db_password=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
         
         # Use configured values if available

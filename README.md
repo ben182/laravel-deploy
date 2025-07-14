@@ -191,7 +191,6 @@ Jedes Laravel-Projekt hat eine eigene Konfigurationsdatei:
 # Project Information
 project:
   name: "My Laravel App"
-  description: "Description of your Laravel application"
   
 # Server Configuration
 server:

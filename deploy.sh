@@ -130,7 +130,6 @@ load_project_config() {
     
     # Load project configuration from deploy.yml
     PROJECT_NAME=$(yq eval ".project.name" "$DEPLOY_CONFIG")
-    PROJECT_DESCRIPTION=$(yq eval ".project.description" "$DEPLOY_CONFIG")
     
     # Server config
     SERVER_HOST=$(yq eval ".server.host" "$DEPLOY_CONFIG")
@@ -149,9 +148,9 @@ load_project_config() {
     GIT_BRANCH=${OVERRIDE_BRANCH:-$(yq eval ".git.branch" "$DEPLOY_CONFIG")}
     GIT_DEPLOY_KEY=$(yq eval ".git.deploy_key" "$DEPLOY_CONFIG")
     
-    # Database config
-    DB_NAME=$(yq eval ".database.name" "$DEPLOY_CONFIG")
-    DB_USER=$(yq eval ".database.user" "$DEPLOY_CONFIG")
+    # Database config (use defaults if not specified)
+    DB_NAME=$(yq eval ".database.name // \"laravel\"" "$DEPLOY_CONFIG")
+    DB_USER=$(yq eval ".database.user // \"laravel\"" "$DEPLOY_CONFIG")
     DB_PASS=$(yq eval ".database.password" "$DEPLOY_CONFIG")
     DB_ROOT_PASS=$(yq eval ".database.root_password" "$DEPLOY_CONFIG")
     
@@ -189,9 +188,6 @@ load_project_config() {
     QUEUE_WORKERS=$(yq eval ".queue.workers" "$DEPLOY_CONFIG")
     QUEUE_CONNECTION=$(yq eval ".queue.connection" "$DEPLOY_CONFIG")
     
-    # Monitoring config
-    MONITORING_ENABLED=$(yq eval ".monitoring.enabled" "$DEPLOY_CONFIG")
-    WEBHOOK_URL=$(yq eval ".monitoring.webhook_url" "$DEPLOY_CONFIG")
     
     # Generate project identifier from domain
     PROJECT_ID=$(echo "$PROJECT_DOMAIN" | sed 's/[^a-zA-Z0-9]/_/g')
@@ -697,14 +693,6 @@ send_notification() {
     
     # Log to file
     echo "$(date): $PROJECT_NAME - $status: $message" >> "$LOG_FILE"
-    
-    # Send webhook notification if configured
-    local webhook_url=$(yq eval ".projects.${project}.monitoring.webhook_url" "$CONFIG_FILE")
-    if [ "$webhook_url" != "null" ] && [ -n "$webhook_url" ]; then
-        curl -X POST -H "Content-Type: application/json" \
-            -d "{\"text\":\"$PROJECT_NAME deployment $status: $message\"}" \
-            "$webhook_url" >/dev/null 2>&1 || true
-    fi
 }
 
 main() {
