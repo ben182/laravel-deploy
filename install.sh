@@ -351,20 +351,13 @@ MAIL_MAILER=log
 EOF
     fi
     
-    # Update or add specific Docker-related variables
-    update_env_variable "$env_file" "APP_URL" "http://localhost:8000"
-    update_env_variable "$env_file" "DB_CONNECTION" "mysql"
-    update_env_variable "$env_file" "DB_HOST" "mysql"
-    update_env_variable "$env_file" "DB_PORT" "3306"
-    update_env_variable "$env_file" "DB_DATABASE" "$db_name"
-    update_env_variable "$env_file" "DB_USERNAME" "$db_user"
-    update_env_variable "$env_file" "DB_PASSWORD" "$db_password"
-    update_env_variable "$env_file" "REDIS_HOST" "redis"
-    update_env_variable "$env_file" "REDIS_PASSWORD" "null"
-    update_env_variable "$env_file" "REDIS_PORT" "6379"
-    update_env_variable "$env_file" "CACHE_STORE" "redis"
-    update_env_variable "$env_file" "SESSION_DRIVER" "redis"
-    update_env_variable "$env_file" "QUEUE_CONNECTION" "redis"
+    # Update or add specific Docker-related variables in organized sections
+    organize_env_file "$env_file" "$db_name" "$db_user" "$db_password"
+    
+    # Update APP_URL if it exists
+    if grep -q "^APP_URL=" "$env_file"; then
+        update_env_variable "$env_file" "APP_URL" "http://localhost:8000"
+    fi
     
     # Generate APP_KEY if not exists or empty
     if ! grep -q "APP_KEY=" "$env_file" || grep -q "APP_KEY=$" "$env_file" || grep -q "APP_KEY=\"\"" "$env_file"; then
@@ -385,17 +378,45 @@ EOF
     log_success ".env file updated with Docker configuration"
 }
 
+organize_env_file() {
+    local env_file="$1"
+    local db_name="$2"
+    local db_user="$3"
+    local db_password="$4"
+    
+    # Simple approach: just update the variables in place
+    update_env_variable "$env_file" "DB_CONNECTION" "mysql"
+    update_env_variable "$env_file" "DB_HOST" "mysql"
+    update_env_variable "$env_file" "DB_PORT" "3306"
+    update_env_variable "$env_file" "DB_DATABASE" "$db_name"
+    update_env_variable "$env_file" "DB_USERNAME" "$db_user"
+    update_env_variable "$env_file" "DB_PASSWORD" "$db_password"
+    update_env_variable "$env_file" "REDIS_HOST" "redis"
+    update_env_variable "$env_file" "REDIS_PASSWORD" "null"
+    update_env_variable "$env_file" "REDIS_PORT" "6379"
+    update_env_variable "$env_file" "CACHE_STORE" "redis"
+    update_env_variable "$env_file" "SESSION_DRIVER" "redis"
+    update_env_variable "$env_file" "QUEUE_CONNECTION" "redis"
+}
+
 update_env_variable() {
     local env_file="$1"
     local var_name="$2"
     local var_value="$3"
     
     if grep -q "^${var_name}=" "$env_file"; then
-        # Variable exists, update it using a more robust approach
-        # Create a temporary file with the updated content
-        grep -v "^${var_name}=" "$env_file" > "$env_file.tmp"
-        echo "${var_name}=${var_value}" >> "$env_file.tmp"
-        mv "$env_file.tmp" "$env_file"
+        # Variable exists, update it using perl if available
+        if command -v perl >/dev/null 2>&1; then
+            perl -i.tmp -pe "s/^${var_name}=.*/${var_name}=${var_value}/" "$env_file"
+            rm -f "$env_file.tmp"
+        else
+            # Fallback: use awk
+            awk -v var="${var_name}" -v val="${var_value}" '
+                $0 ~ "^" var "=" { print var "=" val; next }
+                { print }
+            ' "$env_file" > "$env_file.tmp"
+            mv "$env_file.tmp" "$env_file"
+        fi
     else
         # Variable doesn't exist, add it
         echo "${var_name}=${var_value}" >> "$env_file"

@@ -26,7 +26,7 @@ Dieses System bietet:
 **Automatische Installation (empfohlen)**
 ```bash
 # Im Laravel-Projekt-Verzeichnis
-curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh | bash
+curl -fsSL "https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh?$(date +%s)" | bash
 ```
 
 **Interaktive Installation**
@@ -40,7 +40,7 @@ chmod +x install.sh
 **System-Update**
 ```bash
 # Deployment-System auf die neueste Version aktualisieren
-curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh | bash
+curl -fsSL "https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh?$(date +%s)" | bash
 ```
 
 **Manuelle Installation**
@@ -320,16 +320,16 @@ Das Deployment-System kann jederzeit auf die neueste Version aktualisiert werden
 
 ```bash
 # Im Laravel-Projekt-Verzeichnis
-curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh | bash
+curl -fsSL "https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh?$(date +%s)" | bash
 ```
 
 **Update-Optionen:**
 ```bash
 # Update ohne Backup
-curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh | bash -s -- --skip-backup
+curl -fsSL "https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh?$(date +%s)" | bash -s -- --skip-backup
 
 # Update ohne Bestätigung
-curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh | bash -s -- --force
+curl -fsSL "https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh?$(date +%s)" | bash -s -- --force
 ```
 
 **Was wird aktualisiert:**
@@ -348,7 +348,7 @@ curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.s
 
 ```bash
 # Update-Skript herunterladen und ausführen
-wget https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh
+wget "https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh?$(date +%s)" -O update.sh
 chmod +x update.sh
 ./update.sh --help
 ```
@@ -543,7 +543,7 @@ In der Produktion sind folgende Automatisierungen aktiviert:
 
 ```bash
 # Im Laravel-Projekt-Verzeichnis
-curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh | bash
+curl -fsSL "https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh?$(date +%s)" | bash
 ```
 
 ### Schritt 2: Konfiguration anpassen

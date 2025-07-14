@@ -129,11 +129,18 @@ update_env_variable() {
     local var_value="$3"
     
     if grep -q "^${var_name}=" "$env_file"; then
-        # Variable exists, update it using a more robust approach
-        # Create a temporary file with the updated content
-        grep -v "^${var_name}=" "$env_file" > "$env_file.tmp"
-        echo "${var_name}=${var_value}" >> "$env_file.tmp"
-        mv "$env_file.tmp" "$env_file"
+        # Variable exists, update it using perl if available
+        if command -v perl >/dev/null 2>&1; then
+            perl -i.tmp -pe "s/^${var_name}=.*/${var_name}=${var_value}/" "$env_file"
+            rm -f "$env_file.tmp"
+        else
+            # Fallback: use awk
+            awk -v var="${var_name}" -v val="${var_value}" '
+                $0 ~ "^" var "=" { print var "=" val; next }
+                { print }
+            ' "$env_file" > "$env_file.tmp"
+            mv "$env_file.tmp" "$env_file"
+        fi
     else
         # Variable doesn't exist, add it
         echo "${var_name}=${var_value}" >> "$env_file"
