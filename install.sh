@@ -51,8 +51,8 @@ show_usage() {
     echo ""
     echo "Run this script from your Laravel project root directory."
     echo ""
-    echo "One-liner installation:"
-    echo "  curl -fsSL ${GITHUB_RAW_URL}/install.sh | bash"
+    echo "Installation:"
+    echo "  curl -fsSL ${GITHUB_RAW_URL}/install.sh -o install.sh && chmod +x install.sh && ./install.sh"
 }
 
 check_dependencies() {
@@ -81,16 +81,11 @@ check_target_directory() {
     if [ ! -f "$target_dir/artisan" ]; then
         log_warning "Target directory doesn't appear to be a Laravel project (no artisan file found)"
         
-        # Check if running in non-interactive mode
-        if [[ ! -t 0 ]]; then
-            log_info "Non-interactive mode: Continuing anyway"
-        else
-            read -p "Continue anyway? (y/N): " -n 1 -r < /dev/tty
-            echo
-            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-                log_info "Installation cancelled"
-                exit 0
-            fi
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_info "Installation cancelled"
+            exit 0
         fi
     fi
 }
@@ -123,16 +118,11 @@ backup_existing_files() {
             echo "  - $file"
         done
         
-        # Check if running in non-interactive mode
-        if [[ ! -t 0 ]]; then
-            log_info "Non-interactive mode: Creating backup automatically"
-        else
-            read -p "Create backup and continue? (y/N): " -n 1 -r < /dev/tty
-            echo
-            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-                log_info "Installation cancelled"
-                exit 0
-            fi
+        read -p "Create backup and continue? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_info "Installation cancelled"
+            exit 0
         fi
         
         # Create backup
@@ -228,50 +218,44 @@ configure_deploy_yml() {
     
     # Check if running in non-interactive mode (e.g., via curl | bash)
     if [[ ! -t 0 ]]; then
-        log_warning "Non-interactive mode detected. Using default values."
-        log_info "You can edit deploy.yml manually after installation."
-        
-        # Use default values
-        local domain="$domain_suggestion"
-        local server_host="your-server.com"
-        local ssl_email="admin@$domain"
-        local db_name="laravel"
-        local db_user="laravel"
-        local container_name="$project_name"
-    else
-        # Interactive configuration
-        echo ""
-        echo "Let's configure your deployment settings:"
-        echo ""
-        
-        read -p "Project name [$project_name]: " input_project_name < /dev/tty
-        project_name=${input_project_name:-$project_name}
-        
-        # If APP_NAME is Laravel (default), ask for container name
-        if [ -z "$app_name" ] || [ "$app_name" = "Laravel" ]; then
-            read -p "Container name prefix (for Docker containers) [$project_name]: " container_name < /dev/tty
-            container_name=${container_name:-$project_name}
-        else
-            container_name="$project_name"
-        fi
-        
-        read -p "Primary domain [$domain_suggestion]: " input_domain < /dev/tty
-        domain=${input_domain:-$domain_suggestion}
-        
-        read -p "Server hostname (e.g., your-server.com): " server_host < /dev/tty
-        while [ -z "$server_host" ]; do
-            read -p "Server hostname is required: " server_host < /dev/tty
-        done
-        
-        read -p "SSL email address (e.g., admin@$domain): " ssl_email < /dev/tty
-        while [ -z "$ssl_email" ]; do
-            read -p "SSL email is required: " ssl_email < /dev/tty
-        done
-        
-        # Database uses defaults (laravel/laravel) - no user input needed
-        db_name="laravel"
-        db_user="laravel"
+        log_error "This script must be run interactively."
+        log_info "Please download and run it directly:"
+        log_info "  curl -fsSL ${GITHUB_RAW_URL}/install.sh -o install.sh && chmod +x install.sh && ./install.sh"
+        exit 1
     fi
+    
+    # Interactive configuration
+    echo ""
+    echo "Let's configure your deployment settings:"
+    echo ""
+    
+    read -p "Project name [$project_name]: " input_project_name
+    project_name=${input_project_name:-$project_name}
+    
+    # If APP_NAME is Laravel (default), ask for container name
+    if [ -z "$app_name" ] || [ "$app_name" = "Laravel" ]; then
+        read -p "Container name prefix (for Docker containers) [$project_name]: " container_name
+        container_name=${container_name:-$project_name}
+    else
+        container_name="$project_name"
+    fi
+    
+    read -p "Primary domain [$domain_suggestion]: " input_domain
+    domain=${input_domain:-$domain_suggestion}
+    
+    read -p "Server hostname (e.g., your-server.com): " server_host
+    while [ -z "$server_host" ]; do
+        read -p "Server hostname is required: " server_host
+    done
+    
+    read -p "SSL email address (e.g., admin@$domain): " ssl_email
+    while [ -z "$ssl_email" ]; do
+        read -p "SSL email is required: " ssl_email
+    done
+    
+    # Database uses defaults (laravel/laravel) - no user input needed
+    db_name="laravel"
+    db_user="laravel"
     
     echo ""
     log_info "Generating secure passwords..."
@@ -596,18 +580,6 @@ show_next_steps() {
     echo "Documentation: https://github.com/${GITHUB_REPO}"
     echo ""
     
-    # Show configuration note if using defaults
-    if [[ ! -t 0 ]]; then
-        log_info "⚠️  Non-interactive installation completed with default values"
-        log_info "🔧 Please edit deploy.yml to configure your specific settings:"
-        log_info "   - Server hostname"
-        log_info "   - Domain name"
-        log_info "   - SSL email address"
-        log_info "   - Database credentials"
-        echo ""
-        log_info "💡 For interactive configuration, run the downloaded script:"
-        log_info "   ./configure.sh"
-    fi
 }
 
 main() {
