@@ -215,6 +215,17 @@ configure_deploy_yml() {
     local project_name=$(basename "$target_dir")
     local domain_suggestion="${project_name}.com"
     
+    # Try to get APP_NAME from existing .env if it exists
+    local app_name=""
+    if [ -f "$target_dir/.env" ]; then
+        app_name=$(grep "^APP_NAME=" "$target_dir/.env" 2>/dev/null | cut -d'=' -f2 | sed 's/^["'"'"']//;s/["'"'"']$//')
+        if [ -n "$app_name" ] && [ "$app_name" != "Laravel" ]; then
+            # Convert to lowercase and replace spaces/special chars with hyphens
+            project_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g')
+            domain_suggestion="${project_name}.com"
+        fi
+    fi
+    
     # Check if running in non-interactive mode (e.g., via curl | bash)
     if [[ ! -t 0 ]]; then
         log_warning "Non-interactive mode detected. Using default values."
@@ -226,6 +237,7 @@ configure_deploy_yml() {
         local ssl_email="admin@$domain"
         local db_name="laravel"
         local db_user="laravel"
+        local container_name="$project_name"
     else
         # Interactive configuration
         echo ""
@@ -234,6 +246,14 @@ configure_deploy_yml() {
         
         read -p "Project name [$project_name]: " input_project_name < /dev/tty
         project_name=${input_project_name:-$project_name}
+        
+        # If APP_NAME is Laravel (default), ask for container name
+        if [ -z "$app_name" ] || [ "$app_name" = "Laravel" ]; then
+            read -p "Container name prefix (for Docker containers) [$project_name]: " container_name < /dev/tty
+            container_name=${container_name:-$project_name}
+        else
+            container_name="$project_name"
+        fi
         
         read -p "Primary domain [$domain_suggestion]: " input_domain < /dev/tty
         domain=${input_domain:-$domain_suggestion}
@@ -285,6 +305,61 @@ configure_deploy_yml() {
     rm -f "$deploy_config"
     
     log_success "deploy.yml configured successfully"
+}
+
+update_docker_container_names() {
+    local target_dir="$1"
+    local container_name="$2"
+    
+    log_info "Updating Docker container names..."
+    
+    # Update docker-compose.yml
+    local compose_file="$target_dir/docker-compose.yml"
+    if [ -f "$compose_file" ]; then
+        # Replace container names
+        sed -i.bak "s/laravel-app/${container_name}-app/g" "$compose_file"
+        sed -i.bak "s/laravel-mysql/${container_name}-mysql/g" "$compose_file"
+        sed -i.bak "s/laravel-redis/${container_name}-redis/g" "$compose_file"
+        sed -i.bak "s/laravel-scheduler/${container_name}-scheduler/g" "$compose_file"
+        sed -i.bak "s/laravel-queue/${container_name}-queue/g" "$compose_file"
+        
+        # Replace network name
+        sed -i.bak "s/laravel:/${container_name}:/g" "$compose_file"
+        sed -i.bak "s/- laravel/- ${container_name}/g" "$compose_file"
+        
+        # Remove backup file
+        rm -f "$compose_file.bak"
+        
+        log_success "Updated docker-compose.yml with container names"
+    fi
+    
+    # Update docker-compose.prod.yml
+    local prod_compose_file="$target_dir/docker-compose.prod.yml"
+    if [ -f "$prod_compose_file" ]; then
+        # Replace container names
+        sed -i.bak "s/laravel-app/${container_name}-app/g" "$prod_compose_file"
+        sed -i.bak "s/laravel-mysql/${container_name}-mysql/g" "$prod_compose_file"
+        sed -i.bak "s/laravel-redis/${container_name}-redis/g" "$prod_compose_file"
+        sed -i.bak "s/laravel-scheduler/${container_name}-scheduler/g" "$prod_compose_file"
+        sed -i.bak "s/laravel-queue/${container_name}-queue/g" "$prod_compose_file"
+        
+        # Replace network name
+        sed -i.bak "s/laravel:/${container_name}:/g" "$prod_compose_file"
+        sed -i.bak "s/- laravel/- ${container_name}/g" "$prod_compose_file"
+        
+        # Remove backup file
+        rm -f "$prod_compose_file.bak"
+        
+        log_success "Updated docker-compose.prod.yml with container names"
+    fi
+    
+    # Update docker.sh script
+    local docker_script="$target_dir/docker.sh"
+    if [ -f "$docker_script" ]; then
+        sed -i.bak "s/APP_CONTAINER=\"laravel-app\"/APP_CONTAINER=\"${container_name}-app\"/g" "$docker_script"
+        rm -f "$docker_script.bak"
+        log_success "Updated docker.sh with container names"
+    fi
 }
 
 create_env_example() {
@@ -509,9 +584,9 @@ show_next_steps() {
     echo ""
     echo "Files installed in: $target_dir"
     echo "- Dockerfile"
-    echo "- docker-compose.yml"
-    echo "- docker-compose.prod.yml"
-    echo "- docker.sh"
+    echo "- docker-compose.yml (container names: ${container_name}-*)"
+    echo "- docker-compose.prod.yml (container names: ${container_name}-*)"
+    echo "- docker.sh (configured for ${container_name}-app)"
     echo "- deploy.sh"
     echo "- deploy.yml (configured)"
     echo "- .env (configured for Docker)"
@@ -556,6 +631,7 @@ main() {
     # Installation
     download_files "$target_dir"
     configure_deploy_yml "$target_dir"
+    update_docker_container_names "$target_dir" "$container_name"
     create_env_example "$target_dir"
     
     # Configure .env file with Docker settings
