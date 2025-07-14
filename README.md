@@ -23,25 +23,19 @@ Dieses System bietet:
 
 ### 2. Laravel-Projekt vorbereiten
 
-**Automatische Installation (empfohlen)**
+**Installation (interaktiv)**
 ```bash
 # Im Laravel-Projekt-Verzeichnis
-curl -fsSL -H "Cache-Control: no-cache" -H "Pragma: no-cache" "https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh?cb=$(date +%s)" | bash
+curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh -o install.sh && chmod +x install.sh && ./install.sh
 ```
 
-**Interaktive Installation**
-```bash
-# Für interaktive Konfiguration
-wget https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh
-chmod +x install.sh
-./install.sh
-```
-
-**System-Update**
-```bash
-# Deployment-System auf die neueste Version aktualisieren
-curl -fsSL -H "Cache-Control: no-cache" -H "Pragma: no-cache" "https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh?cb=$(date +%s)" | bash
-```
+Das Install-Script ist vollständig interaktiv und konfiguriert:
+- Projekt-Name und Container-Namen (basierend auf APP_NAME aus .env)
+- Domain und SSL-Einstellungen
+- Server-Hostname
+- Database-Passwörter (automatisch generiert)
+- Redis-Passwörter (automatisch generiert)
+- Docker-Container-Namen (automatisch angepasst für Multi-Projekt-Support)
 
 **Manuelle Installation**
 ```bash
@@ -216,9 +210,9 @@ git:
 
 # Database Configuration
 database:
-  name: "myapp_prod"
-  user: "myapp_user"
-  password: "secure_random_password_here"
+  # Uses defaults: name=laravel, user=laravel (internal Docker network)
+  password: "secure_random_password_here"  # Auto-generated during installation
+  root_password: "secure_root_password"    # Auto-generated during installation
   
 # Deployment Configuration
 deployment:
@@ -313,30 +307,23 @@ Das System konfiguriert automatisch:
 
 ## System-Updates
 
-### Automatisches Update
+### System-Update
 
-Das Deployment-System kann jederzeit auf die neueste Version aktualisiert werden:
+Das Deployment-System kann durch erneutes Ausführen des Install-Scripts aktualisiert werden:
 
 ```bash
 # Im Laravel-Projekt-Verzeichnis
-curl -fsSL -H "Cache-Control: no-cache" -H "Pragma: no-cache" "https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh?cb=$(date +%s)" | bash
+curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh -o install.sh && chmod +x install.sh && ./install.sh
 ```
 
-**Update-Optionen:**
-```bash
-# Update ohne Backup
-curl -fsSL -H "Cache-Control: no-cache" -H "Pragma: no-cache" "https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh?cb=$(date +%s)" | bash -s -- --skip-backup
-
-# Update ohne Bestätigung
-curl -fsSL -H "Cache-Control: no-cache" -H "Pragma: no-cache" "https://raw.githubusercontent.com/ben182/laravel-deploy/main/update.sh?cb=$(date +%s)" | bash -s -- --force
-```
+Das Script erkennt vorhandene Dateien und erstellt automatisch Backups vor dem Update.
 
 **Was wird aktualisiert:**
 - Dockerfile
 - docker-compose.yml / docker-compose.prod.yml
-- docker.sh, deploy.sh, provision.sh
-- configure.sh
+- docker.sh, deploy.sh
 - docker/ Verzeichnis-Konfigurationen
+- Container-Namen werden automatisch angepasst
 
 **Was wird NICHT aktualisiert:**
 - deploy.yml (Ihre Projekt-Konfiguration)
@@ -396,14 +383,6 @@ git:
   deploy_key: "~/.ssh/deploy_key"  # Optional für Git
 ```
 
-### Monitoring-Integration
-
-```yaml
-# In deploy.yml
-monitoring:
-  enabled: true
-  webhook_url: "https://hooks.slack.com/services/..."
-```
 
 ## Troubleshooting
 
@@ -542,13 +521,13 @@ In der Produktion sind folgende Automatisierungen aktiviert:
 
 ```bash
 # Im Laravel-Projekt-Verzeichnis
-curl -fsSL -H "Cache-Control: no-cache" -H "Pragma: no-cache" "https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh?cb=$(date +%s)" | bash
+curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh -o install.sh && chmod +x install.sh && ./install.sh
 ```
 
 ### Schritt 2: Konfiguration anpassen
 
 ```bash
-# Das Install-Skript konfiguriert deploy.yml automatisch
+# Das Install-Skript konfiguriert deploy.yml interaktiv
 # Bei Bedarf weitere Anpassungen in deploy.yml vornehmen
 ```
 

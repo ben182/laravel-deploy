@@ -11,18 +11,21 @@ This is a complete Laravel Docker deployment system providing production-ready i
 The system consists of three main components:
 
 1. **Docker Infrastructure** (`Dockerfile`, `docker-compose.yml`, `docker-compose.prod.yml`)
-   - Laravel application container with PHP 8.3 + Nginx
-   - MySQL 8.0 database container
+   - Laravel application container with PHP 8.4 + Nginx
+   - MySQL 8.0 database container (defaults: name=laravel, user=laravel)
    - Redis cache/session container
    - Separate scheduler and queue worker containers
+   - **Dynamic container names** based on APP_NAME for multi-project support
 
 2. **Management Scripts**
+   - `install.sh` - Interactive installation script with automatic container naming
    - `docker.sh` - Complete Docker operations management
    - `provision.sh` - Server provisioning for Ubuntu 24.04
    - `deploy.sh` - Zero-downtime deployment with Blue-Green strategy
 
 3. **Configuration System**
-   - `deploy.yml` - Per-project configuration file
+   - `deploy-config.yml` - Configuration template
+   - `deploy.yml` - Per-project configuration file (generated from template)
    - `server/port-manager.sh` - Automatic port assignment for multi-project hosting
    - `templates/` - Nginx and Docker Compose templates
 
@@ -65,8 +68,9 @@ The system consists of three main components:
 ├── docker.sh                    # Docker management script
 ├── provision.sh                 # Server provisioning script
 ├── deploy.sh                    # Deployment script
-├── deploy.yml                   # Per-project configuration template
-├── install.sh                   # GitHub installation script
+├── deploy-config.yml            # Configuration template
+├── deploy.yml                   # Per-project configuration (generated)
+├── install.sh                   # Interactive installation script
 ├── server/
 │   └── port-manager.sh          # Automatic port assignment for server
 ├── templates/
@@ -91,15 +95,16 @@ The system consists of three main components:
 - **Automatic SSL**: Always-on HTTPS with Certbot integration and auto-renewal
 - **Security Hardening**: SSH hardening, UFW firewall, Fail2ban, HTTPS-only
 - **Performance Optimization**: OPcache, Redis caching, Nginx optimization
-- **Monitoring**: Health checks, system monitoring, deployment notifications
+- **Dynamic Container Names**: Automatic container naming based on APP_NAME to prevent conflicts
 - **Backup System**: Automated database backups with retention
+- **Interactive Installation**: User-friendly installation with automatic configuration
 
 ## Integration with Existing Laravel Projects
 
-### Automatic Installation (Recommended)
+### Interactive Installation (Recommended)
 ```bash
 # From Laravel project root directory
-curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh -o install.sh && chmod +x install.sh && ./install.sh
 ```
 
 ### Manual Installation
@@ -108,7 +113,7 @@ cp Dockerfile /path/to/laravel/project/
 cp docker-compose.yml /path/to/laravel/project/
 cp docker-compose.prod.yml /path/to/laravel/project/
 cp -r docker/ /path/to/laravel/project/
-cp deploy.yml /path/to/laravel/project/
+cp deploy-config.yml /path/to/laravel/project/deploy.yml
 ```
 
 ### Deploy
@@ -121,6 +126,10 @@ cp deploy.yml /path/to/laravel/project/
 
 - All scripts are production-ready with comprehensive error handling
 - Per-project configuration system for maximum flexibility
+- **Interactive Installation**: User-friendly setup with automatic configuration
+- **Dynamic Container Names**: Automatic naming based on APP_NAME to prevent conflicts
+- **Database Defaults**: Uses laravel/laravel for database name/user (internal Docker)
+- **APP_KEY Management**: Automatically generated on server, shared across deployments
 - **Simplified usage**: Run scripts from project root directory, no path parameters needed
 - **provision.sh**: Creates 'deploy' user automatically, SSH keys must be added manually
 - **deploy.sh**: Runs from Laravel project root, looks for deploy.yml in current directory
@@ -130,4 +139,12 @@ cp deploy.yml /path/to/laravel/project/
 - Supports modern security best practices
 - Optimized for Hetzner Ubuntu 24.04 servers
 - Uses serversideup/php:8.4-fpm-nginx Docker images with Laravel-specific optimizations
-- Comprehensive logging and monitoring capabilities
+
+## Documentation Update Requirements
+
+**IMPORTANT**: After making ANY changes to the codebase, configuration files, or features, you MUST update both:
+
+1. **CLAUDE.md** - Update architecture, features, commands, and notes sections to reflect changes
+2. **README.md** - Update installation instructions, configuration examples, and feature descriptions
+
+This ensures documentation stays synchronized with code changes and provides accurate information for users and future development.
