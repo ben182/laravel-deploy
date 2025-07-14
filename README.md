@@ -23,6 +23,13 @@ Dieses System bietet:
 
 ### 2. Laravel-Projekt vorbereiten
 
+**Automatische Installation (empfohlen)**
+```bash
+# Im Laravel-Projekt-Verzeichnis
+curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh | bash
+```
+
+**Manuelle Installation**
 ```bash
 # Diese Dateien in Ihr Laravel-Projekt kopieren
 cp Dockerfile /path/to/your/laravel/project/
@@ -35,8 +42,9 @@ cp deploy.yml /path/to/your/laravel/project/
 ### 3. Projekt konfigurieren
 
 ```bash
-# In Ihrem Laravel-Projekt die deploy.yml bearbeiten
-# Server-Details, Domain, Datenbank-Credentials konfigurieren
+# Das Install-Skript konfiguriert deploy.yml automatisch
+# Bei manueller Installation: deploy.yml bearbeiten
+# Server-Details, Domain, SSH-Keys, Datenbank-Credentials konfigurieren
 ```
 
 ### 4. Development
@@ -410,22 +418,18 @@ Unser System nutzt die hochoptimierten `serversideup/php:8.4-fpm-nginx` Docker I
 
 ## Integration in bestehende Projekte
 
-### Schritt 1: Dateien kopieren
+### Schritt 1: Automatische Installation
 
 ```bash
-# Diese Dateien in Ihr Laravel-Projekt kopieren:
-cp Dockerfile /path/to/your/project/
-cp docker-compose.yml /path/to/your/project/
-cp docker-compose.prod.yml /path/to/your/project/
-cp -r docker/ /path/to/your/project/
-cp deploy.yml /path/to/your/project/
+# Im Laravel-Projekt-Verzeichnis
+curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh | bash
 ```
 
 ### Schritt 2: Konfiguration anpassen
 
 ```bash
-# deploy.yml in Ihrem Projekt bearbeiten
-# Server-Details, Domain, SSH-Keys, Datenbank-Credentials konfigurieren
+# Das Install-Skript konfiguriert deploy.yml automatisch
+# Bei Bedarf weitere Anpassungen in deploy.yml vornehmen
 ```
 
 ### Schritt 3: Deployment

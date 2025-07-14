@@ -66,6 +66,7 @@ The system consists of three main components:
 ├── provision.sh                 # Server provisioning script
 ├── deploy.sh                    # Deployment script
 ├── deploy.yml                   # Per-project configuration template
+├── install.sh                   # GitHub installation script
 ├── server/
 │   └── port-manager.sh          # Automatic port assignment for server
 ├── templates/
@@ -95,22 +96,26 @@ The system consists of three main components:
 
 ## Integration with Existing Laravel Projects
 
-1. Copy Docker files to Laravel project:
-   ```bash
-   cp Dockerfile /path/to/laravel/project/
-   cp docker-compose.yml /path/to/laravel/project/
-   cp docker-compose.prod.yml /path/to/laravel/project/
-   cp -r docker/ /path/to/laravel/project/
-   cp deploy.yml /path/to/laravel/project/
-   ```
+### Automatic Installation (Recommended)
+```bash
+# From Laravel project root directory
+curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh | bash
+```
 
-2. Configure project in `deploy.yml` (server host, domain, SSH keys, database credentials)
+### Manual Installation
+```bash
+cp Dockerfile /path/to/laravel/project/
+cp docker-compose.yml /path/to/laravel/project/
+cp docker-compose.prod.yml /path/to/laravel/project/
+cp -r docker/ /path/to/laravel/project/
+cp deploy.yml /path/to/laravel/project/
+```
 
-3. Deploy:
-   ```bash
-   # From Laravel project root directory
-   ./deploy.sh
-   ```
+### Deploy
+```bash
+# From Laravel project root directory
+./deploy.sh
+```
 
 ## Notes
 
