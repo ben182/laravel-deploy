@@ -29,6 +29,14 @@ Dieses System bietet:
 curl -fsSL https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh | bash
 ```
 
+**Interaktive Installation**
+```bash
+# Für interaktive Konfiguration
+wget https://raw.githubusercontent.com/ben182/laravel-deploy/main/install.sh
+chmod +x install.sh
+./install.sh
+```
+
 **Manuelle Installation**
 ```bash
 # Diese Dateien in Ihr Laravel-Projekt kopieren
@@ -42,8 +50,11 @@ cp deploy.yml /path/to/your/laravel/project/
 ### 3. Projekt konfigurieren
 
 ```bash
-# Das Install-Skript konfiguriert deploy.yml automatisch
-# Bei manueller Installation: deploy.yml bearbeiten
+# One-liner Installation verwendet Standard-Werte
+# Für interaktive Konfiguration nach der Installation:
+./configure.sh
+
+# Oder deploy.yml manuell bearbeiten
 # Server-Details, Domain, SSH-Keys, Datenbank-Credentials konfigurieren
 ```
 

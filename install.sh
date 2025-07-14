@@ -80,11 +80,17 @@ check_target_directory() {
     # Check if it looks like a Laravel project
     if [ ! -f "$target_dir/artisan" ]; then
         log_warning "Target directory doesn't appear to be a Laravel project (no artisan file found)"
-        read -p "Continue anyway? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            log_info "Installation cancelled"
-            exit 0
+        
+        # Check if running in non-interactive mode
+        if [[ ! -t 0 ]]; then
+            log_info "Non-interactive mode: Continuing anyway"
+        else
+            read -p "Continue anyway? (y/N): " -n 1 -r < /dev/tty
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                log_info "Installation cancelled"
+                exit 0
+            fi
         fi
     fi
 }
@@ -117,11 +123,16 @@ backup_existing_files() {
             echo "  - $file"
         done
         
-        read -p "Create backup and continue? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            log_info "Installation cancelled"
-            exit 0
+        # Check if running in non-interactive mode
+        if [[ ! -t 0 ]]; then
+            log_info "Non-interactive mode: Creating backup automatically"
+        else
+            read -p "Create backup and continue? (y/N): " -n 1 -r < /dev/tty
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                log_info "Installation cancelled"
+                exit 0
+            fi
         fi
         
         # Create backup
@@ -159,6 +170,7 @@ download_files() {
         "docker.sh"
         "deploy.sh"
         "deploy.yml"
+        "configure.sh"
     )
     
     for file in "${files_to_download[@]}"; do
@@ -187,6 +199,7 @@ download_files() {
     # Make scripts executable
     chmod +x "$target_dir/docker.sh"
     chmod +x "$target_dir/deploy.sh"
+    chmod +x "$target_dir/configure.sh"
     
     log_success "All files downloaded successfully"
 }
@@ -201,32 +214,45 @@ configure_deploy_yml() {
     local project_name=$(basename "$target_dir")
     local domain_suggestion="${project_name}.com"
     
-    # Interactive configuration
-    echo ""
-    echo "Let's configure your deployment settings:"
-    echo ""
-    
-    read -p "Project name [$project_name]: " input_project_name
-    project_name=${input_project_name:-$project_name}
-    
-    read -p "Primary domain [$domain_suggestion]: " input_domain
-    domain=${input_domain:-$domain_suggestion}
-    
-    read -p "Server hostname (e.g., your-server.com): " server_host
-    while [ -z "$server_host" ]; do
-        read -p "Server hostname is required: " server_host
-    done
-    
-    read -p "SSL email address (e.g., admin@$domain): " ssl_email
-    while [ -z "$ssl_email" ]; do
-        read -p "SSL email is required: " ssl_email
-    done
-    
-    read -p "Database name [${project_name}_prod]: " db_name
-    db_name=${db_name:-${project_name}_prod}
-    
-    read -p "Database user [${project_name}_user]: " db_user
-    db_user=${db_user:-${project_name}_user}
+    # Check if running in non-interactive mode (e.g., via curl | bash)
+    if [[ ! -t 0 ]]; then
+        log_warning "Non-interactive mode detected. Using default values."
+        log_info "You can edit deploy.yml manually after installation."
+        
+        # Use default values
+        local domain="$domain_suggestion"
+        local server_host="your-server.com"
+        local ssl_email="admin@$domain"
+        local db_name="${project_name}_prod"
+        local db_user="${project_name}_user"
+    else
+        # Interactive configuration
+        echo ""
+        echo "Let's configure your deployment settings:"
+        echo ""
+        
+        read -p "Project name [$project_name]: " input_project_name < /dev/tty
+        project_name=${input_project_name:-$project_name}
+        
+        read -p "Primary domain [$domain_suggestion]: " input_domain < /dev/tty
+        domain=${input_domain:-$domain_suggestion}
+        
+        read -p "Server hostname (e.g., your-server.com): " server_host < /dev/tty
+        while [ -z "$server_host" ]; do
+            read -p "Server hostname is required: " server_host < /dev/tty
+        done
+        
+        read -p "SSL email address (e.g., admin@$domain): " ssl_email < /dev/tty
+        while [ -z "$ssl_email" ]; do
+            read -p "SSL email is required: " ssl_email < /dev/tty
+        done
+        
+        read -p "Database name [${project_name}_prod]: " db_name < /dev/tty
+        db_name=${db_name:-${project_name}_prod}
+        
+        read -p "Database user [${project_name}_user]: " db_user < /dev/tty
+        db_user=${db_user:-${project_name}_user}
+    fi
     
     echo ""
     log_info "Generating secure passwords..."
@@ -295,9 +321,24 @@ show_next_steps() {
     echo "- docker.sh"
     echo "- deploy.sh"
     echo "- deploy.yml (configured)"
+    echo "- configure.sh"
     echo "- docker/ (directory with configurations)"
     echo ""
     echo "Documentation: https://github.com/${GITHUB_REPO}"
+    echo ""
+    
+    # Show configuration note if using defaults
+    if [[ ! -t 0 ]]; then
+        log_info "⚠️  Non-interactive installation completed with default values"
+        log_info "🔧 Please edit deploy.yml to configure your specific settings:"
+        log_info "   - Server hostname"
+        log_info "   - Domain name"
+        log_info "   - SSL email address"
+        log_info "   - Database credentials"
+        echo ""
+        log_info "💡 For interactive configuration, run the downloaded script:"
+        log_info "   ./configure.sh"
+    fi
 }
 
 main() {
