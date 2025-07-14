@@ -53,7 +53,6 @@ app:
   environment: "production"
   debug: false
   timezone: "UTC"
-  key: "base64:GENERATE_NEW_KEY_HERE"
   
 # Deployment Configuration
 deployment:

@@ -169,7 +169,6 @@ load_project_config() {
     # App config
     APP_ENV=$(yq eval ".app.environment" "$DEPLOY_CONFIG")
     APP_DEBUG=$(yq eval ".app.debug" "$DEPLOY_CONFIG")
-    APP_KEY=$(yq eval ".app.key" "$DEPLOY_CONFIG")
     APP_TIMEZONE=$(yq eval ".app.timezone" "$DEPLOY_CONFIG")
     
     # Deployment config
@@ -323,20 +322,23 @@ clone_repository() {
 setup_environment() {
     log_info "Setting up environment..."
     
-    cd "$CURRENT_RELEASE_DIR"
-    
-    # Copy environment file
-    if [ -f "$SCRIPT_DIR/$ENV_FILE" ]; then
-        cp "$SCRIPT_DIR/$ENV_FILE" .env
-        log_success "Environment file copied"
+    # Copy .env to shared directory if it doesn't exist
+    if ! ssh_exec "test -f $SHARED_DIR/.env"; then
+        log_info "Copying .env to shared directory..."
+        ssh_exec "cp $CURRENT_RELEASE_DIR/.env $SHARED_DIR/.env"
+        
+        # Generate APP_KEY EINMALIG on server
+        ssh_exec "cd $CURRENT_RELEASE_DIR && php artisan key:generate --env=$SHARED_DIR/.env --force"
+        log_success "Copied .env to shared directory and generated APP_KEY"
     else
-        log_warning "Environment file not found: $SCRIPT_DIR/$ENV_FILE"
+        log_info "Using existing shared .env file"
     fi
     
-    # Link shared directories
-    rm -rf storage bootstrap/cache
-    ln -sf "$SHARED_DIR/storage" storage
-    ln -sf "$SHARED_DIR/bootstrap/cache" bootstrap/cache
+    # Link shared .env and directories
+    ssh_exec "cd $CURRENT_RELEASE_DIR && rm -rf .env storage bootstrap/cache"
+    ssh_exec "cd $CURRENT_RELEASE_DIR && ln -sf $SHARED_DIR/.env .env"
+    ssh_exec "cd $CURRENT_RELEASE_DIR && ln -sf $SHARED_DIR/storage storage"
+    ssh_exec "cd $CURRENT_RELEASE_DIR && ln -sf $SHARED_DIR/bootstrap/cache bootstrap/cache"
     
     log_success "Environment setup completed"
 }
@@ -349,24 +351,22 @@ build_application() {
     
     log_info "Building application..."
     
-    cd "$CURRENT_RELEASE_DIR"
-    
     # Install Composer dependencies
     if [ "$COMPOSER_INSTALL" = "true" ]; then
         log_info "Installing Composer dependencies..."
-        composer install --no-dev --optimize-autoloader --no-interaction
+        ssh_exec "cd $CURRENT_RELEASE_DIR && composer install $COMPOSER_FLAGS --no-interaction"
     fi
     
     # Install NPM dependencies
     if [ "$NPM_INSTALL" = "true" ]; then
         log_info "Installing NPM dependencies..."
-        npm ci --production
+        ssh_exec "cd $CURRENT_RELEASE_DIR && npm ci --production"
     fi
     
     # Build assets
-    if [ "$NPM_BUILD" = "true" ]; then
+    if [ "$NPM_BUILD_CMD" != "null" ] && [ -n "$NPM_BUILD_CMD" ]; then
         log_info "Building assets..."
-        npm run build
+        ssh_exec "cd $CURRENT_RELEASE_DIR && $NPM_BUILD_CMD"
     fi
     
     log_success "Application built successfully"
